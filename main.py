@@ -106,10 +106,10 @@ def get_model(args):
         tgt_tokenizer.build_inputs_with_special_tokens = types.MethodType(
             build_inputs_with_special_tokens, tgt_tokenizer
         )
-        encoder = BertGenerationEncoder.from_pretrained(args.src_pretrain_dataset_name)
+        encoder = BertGenerationEncoder.from_pretrained(args.src_pretrain_dataset_name).to(device)
         decoder = GPT2LMHeadModel.from_pretrained(
             args.tgt_pretrain_dataset_name, add_cross_attention=True, is_decoder=True
-        )
+        ).to(device)
         decoder.resize_token_embeddings(len(tgt_tokenizer))
         decoder.config.bos_token_id = tgt_tokenizer.bos_token_id
         decoder.config.eos_token_id = tgt_tokenizer.eos_token_id
@@ -458,10 +458,10 @@ if __name__ == "__main__":
     parse.add_argument("--dataset_name", default="origin", type=str)
     parse.add_argument("--src_pretrain_dataset_name", default="bert-base-chinese", type=str)
     parse.add_argument("--tgt_pretrain_dataset_name", default="gpt2", type=str)
-    parse.add_argument("--train_data_path", default="../dataset/train.txt", type=str)
-    parse.add_argument("--eval_data_path", default="../dataset/eval.txt", type=str)
-    parse.add_argument("--run_path", default="../runs/", type=str)
-    parse.add_argument("--output_dir", default="../checkpoints/", type=str)
+    parse.add_argument("--train_data_path", default="/content/Cantolater/dataset/train.txt", type=str)
+    parse.add_argument("--eval_data_path", default=None, type=str)
+    parse.add_argument("--run_path", default="/content/Cantolater/runs/", type=str)
+    parse.add_argument("--output_dir", default="/content/Cantolater/checkpoints/", type=str)
     parse.add_argument("--optimizer", default="adam", type=str)
     parse.add_argument("--lr", default=1e-7, type=float)
     parse.add_argument("--finetune_lr", default=1e-5, type=float)
