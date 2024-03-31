@@ -87,4 +87,4 @@ def build_inputs_with_special_tokens(self, token_ids_0, token_ids_1=None):
 
 
 def to_list(tensor):
-    return tensor.detach().cpu().tolist()
+    return tensor.detach().cuda().tolist()

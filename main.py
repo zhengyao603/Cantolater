@@ -321,9 +321,9 @@ def train(
 
             # 如果有多个GPU，则对损失进行减少操作
             if args.ngpu > 1:
-                reduced_loss = reduce_tensor(loss).cpu().item()
+                reduced_loss = reduce_tensor(loss).cuda().item()
             else:
-                reduced_loss = loss.cpu().item()
+                reduced_loss = loss.cuda().item()
             if local_rank == 0 or local_rank == -1:
                 # 获取当前学习率和微调学习率
                 lr, finetune_lr = scheduler.get_lr()[0], scheduler.get_lr()[1]
@@ -492,7 +492,7 @@ if __name__ == "__main__":
         device = torch.device("cuda", local_rank)
     else:
         local_rank = args.local_rank
-        device = torch.device("cpu")
+        device = torch.device("cuda")
 
     # 日志输出
     if local_rank == 0 or local_rank == -1:

@@ -7,7 +7,7 @@ def main():
         data = pickle.load(file)
 
     # 定义输出文件路径
-    output_file = './dataset/output.txt'
+    output_file = './dataset/train.txt'
 
     # 将DataFrame转换为txt文件
     with open(output_file, 'w', encoding='utf-8') as f:
