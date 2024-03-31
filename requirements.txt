@@ -1,0 +1,17 @@
+ConfigArgParse
+configparser
+datasets
+numba
+numpy
+sacrebleu
+sacremoses
+scikit-learn
+tensorboard
+tensorboardX
+tokenizers
+torch
+torch-tb-profiler
+torchtext
+tqdm
+transformers
+protobuf==3.20.0
