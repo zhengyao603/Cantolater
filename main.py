@@ -7,12 +7,10 @@ from torch import optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import (
-    BertGenerationEncoder,
+    AutoModel,
     BertTokenizer,
     EncoderDecoderModel,
     EncoderDecoderConfig,
-    GPT2LMHeadModel,
-    GPT2Tokenizer,
     get_cosine_schedule_with_warmup,
 )
 
@@ -47,7 +45,7 @@ def get_optimizer_and_schedule(args, model: EncoderDecoderModel):
     init_params_id = []
 
     # 遍历模型的解码器层，收集交叉注意力层和层归一化层的参数ID
-    for layer in model.decoder.transformer.h:
+    for layer in model.decoder.h:
         init_params_id.extend(list(map(id, layer.crossattention.parameters())))
         init_params_id.extend(list(map(id, layer.ln_cross_attn.parameters())))
 
@@ -81,7 +79,7 @@ def get_model(args):
         src_tokenizer = BertTokenizer.from_pretrained(
             os.path.join(args.model_path, "src_tokenizer")
         )
-        tgt_tokenizer = GPT2Tokenizer.from_pretrained(
+        tgt_tokenizer = BertTokenizer.from_pretrained(
             os.path.join(args.model_path, "tgt_tokenizer")
         )
         tgt_tokenizer.build_inputs_with_special_tokens = types.MethodType(
@@ -93,15 +91,15 @@ def get_model(args):
     else:
         # 如果没有指定特定模型，则根据预训练的数据集名称加载模型和tokenizer
         src_tokenizer = BertTokenizer.from_pretrained(args.src_pretrain_dataset_name)
-        tgt_tokenizer = GPT2Tokenizer.from_pretrained(args.tgt_pretrain_dataset_name)
+        tgt_tokenizer = BertTokenizer.from_pretrained(args.tgt_pretrain_dataset_name)
         tgt_tokenizer.add_special_tokens(
             {"bos_token": "[BOS]", "eos_token": "[EOS]", "pad_token": "[PAD]"}
         )
         tgt_tokenizer.build_inputs_with_special_tokens = types.MethodType(
             build_inputs_with_special_tokens, tgt_tokenizer
         )
-        encoder = BertGenerationEncoder.from_pretrained(args.src_pretrain_dataset_name)
-        decoder = GPT2LMHeadModel.from_pretrained(
+        encoder = AutoModel.from_pretrained(args.src_pretrain_dataset_name)
+        decoder = AutoModel.from_pretrained(
             args.tgt_pretrain_dataset_name, add_cross_attention=True, is_decoder=True
         )
         decoder.resize_token_embeddings(len(tgt_tokenizer))
@@ -140,7 +138,7 @@ def save_model(
     model,
     optimizer,
     src_tokenizer: BertTokenizer,
-    tgt_tokenizer: GPT2Tokenizer,
+    tgt_tokenizer: BertTokenizer,
     nstep,
     nepoch,
     bleu,
@@ -302,7 +300,7 @@ def train(
                 decoder_attention_mask=decoder_attention_mask,
                 labels=labels,
                 return_dict=True,
-            ).to(device)
+            )
 
             loss = outputs.loss
             # 反向传播和优化器更新参数
@@ -451,7 +449,7 @@ if __name__ == "__main__":
     parse = argparse.ArgumentParser()
     parse.add_argument("--dataset_name", default="origin", type=str)
     parse.add_argument("--src_pretrain_dataset_name", default="bert-base-chinese", type=str)
-    parse.add_argument("--tgt_pretrain_dataset_name", default="gpt2", type=str)
+    parse.add_argument("--tgt_pretrain_dataset_name", default="ckiplab/gpt2-base-chinese", type=str)
     parse.add_argument("--train_data_path", default="./dataset/train.txt", type=str)
     parse.add_argument("--eval_data_path", default=None, type=str)
     parse.add_argument("--run_path", default="./runs/", type=str)
