@@ -1,23 +1,18 @@
 import types
 import argparse
-import logging
 from functools import partial
-import json
 
 import torch
 from torch import optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import (
-    BertGenerationConfig,
     BertGenerationEncoder,
     BertTokenizer,
     EncoderDecoderModel,
     EncoderDecoderConfig,
     GPT2LMHeadModel,
     GPT2Tokenizer,
-    Trainer,
-    TrainingArguments,
     get_cosine_schedule_with_warmup,
 )
 
@@ -28,7 +23,6 @@ import random
 import numpy as np
 from tensorboardX import SummaryWriter
 from torch.utils.data import RandomSampler
-from torch.utils.data.distributed import DistributedSampler
 
 
 def set_seed(args):
@@ -106,10 +100,10 @@ def get_model(args):
         tgt_tokenizer.build_inputs_with_special_tokens = types.MethodType(
             build_inputs_with_special_tokens, tgt_tokenizer
         )
-        encoder = BertGenerationEncoder.from_pretrained(args.src_pretrain_dataset_name).to(device)
+        encoder = BertGenerationEncoder.from_pretrained(args.src_pretrain_dataset_name)
         decoder = GPT2LMHeadModel.from_pretrained(
             args.tgt_pretrain_dataset_name, add_cross_attention=True, is_decoder=True
-        ).to(device)
+        )
         decoder.resize_token_embeddings(len(tgt_tokenizer))
         decoder.config.bos_token_id = tgt_tokenizer.bos_token_id
         decoder.config.eos_token_id = tgt_tokenizer.eos_token_id
@@ -126,7 +120,7 @@ def get_model(args):
         )
 
     # 将模型移动到设备上
-    if local_rank != -1:
+    if local_rank == -1:
         model = model.to(device)
 
     # 如果有多个GPU，使用分布式数据并行
@@ -302,13 +296,13 @@ def train(
                 labels,
             ) = data
             outputs = model(
-                input_ids=input_ids.to(device),
-                attention_mask=attention_mask.to(device),
-                decoder_input_ids=decoder_input_ids.to(device),
-                decoder_attention_mask=decoder_attention_mask.to(device),
-                labels=labels.to(device),
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                decoder_input_ids=decoder_input_ids,
+                decoder_attention_mask=decoder_attention_mask,
+                labels=labels,
                 return_dict=True,
-            )
+            ).to(device)
 
             loss = outputs.loss
             # 反向传播和优化器更新参数
@@ -458,10 +452,10 @@ if __name__ == "__main__":
     parse.add_argument("--dataset_name", default="origin", type=str)
     parse.add_argument("--src_pretrain_dataset_name", default="bert-base-chinese", type=str)
     parse.add_argument("--tgt_pretrain_dataset_name", default="gpt2", type=str)
-    parse.add_argument("--train_data_path", default="/content/Cantolater/dataset/train.txt", type=str)
+    parse.add_argument("--train_data_path", default="./dataset/train.txt", type=str)
     parse.add_argument("--eval_data_path", default=None, type=str)
-    parse.add_argument("--run_path", default="/content/Cantolater/runs/", type=str)
-    parse.add_argument("--output_dir", default="/content/Cantolater/checkpoints/", type=str)
+    parse.add_argument("--run_path", default="./runs/", type=str)
+    parse.add_argument("--output_dir", default="./checkpoints/", type=str)
     parse.add_argument("--optimizer", default="adam", type=str)
     parse.add_argument("--lr", default=1e-7, type=float)
     parse.add_argument("--finetune_lr", default=1e-5, type=float)
@@ -492,7 +486,7 @@ if __name__ == "__main__":
         device = torch.device("cuda", local_rank)
     else:
         local_rank = args.local_rank
-        device = torch.device("cuda")
+        device = torch.device("cpu")
 
     # 日志输出
     if local_rank == 0 or local_rank == -1:
